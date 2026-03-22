@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <main class="login-card" aria-labelledby="register-title">
+        <h1 id="register-title">Create Account</h1>
+        <p class="subtitle">Register to get started.</p>
+
+        <form id="register-form">
+            <div class="field">
+                <label for="register-email">Email</label>
+                <input id="register-email" name="registerEmail" type="email" required />
+            </div>
+
+            <div class="field">
+                <label for="register-password">Password</label>
+                <input id="register-password" name="registerPassword" type="password" required minlength="6" />
+            </div>
+
+            <button type="submit">Register</button>
+        </form>
+
+        <a class="page-link" href="login.html">Already have an account? Log In</a>
+
+        <p id="form-message" class="message" aria-live="polite"></p>
+    </main>
+
+    <script src="client.js"></script>
+</body>
+</html>
