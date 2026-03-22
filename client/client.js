@@ -1,7 +1,7 @@
 const loginForm = document.getElementById("login-form");
 const registerForm = document.getElementById("register-form");
 const message = document.getElementById("form-message");
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "https://isa-telephony.onrender.com";
 
 function showMessage(text, type) {
 	message.textContent = text;
