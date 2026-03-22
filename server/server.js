@@ -10,9 +10,9 @@ app.use(express.json());
 app.use(cors());
 
 const clientDir = path.join(__dirname, '..', 'client');
-app.use(express.static(clientDir));
+app.use(express.static(clientDir, { index: false }));
 
-app.get('/', (req, res) => {
+app.get(['/', '/index.html'], (req, res) => {
   res.sendFile(path.join(clientDir, 'login.html'));
 });
 
