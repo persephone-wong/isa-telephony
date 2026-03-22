@@ -3,14 +3,20 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const twilio = require('twilio');
 
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const app = express();
 app.use(express.json());
 app.use(cors());
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const phone = twilio(accountSid, authToken);
+
 
 const appDatabaseUrl = process.env.DATABASE_URL || process.env.APP_DATABASE_URL;
 const adminDatabaseUrl = process.env.DATABASE_URL || process.env.ADMIN_DATABASE_URL;
+
 
 if (!appDatabaseUrl || !adminDatabaseUrl) {
   throw new Error('Missing database URL. Set APP_DATABASE_URL/ADMIN_DATABASE_URL or DATABASE_URL in .env');
@@ -80,6 +86,13 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.post('/recieve-call', (req, res) => {
+    const twiml = new Twilio.twiml.VoiceResponse();
+    twiml.say('This is ISA Telephony. Your call has been received and confirmed. Thank you for using our service!');
+    res.type('text/xml');
+    res.send(twiml.toString());
+});
+
 // ==================
 // ADMIN ROUTES
 // ==================
@@ -120,3 +133,7 @@ app.put('/admin/update-api-calls', requireAdmin, async (req, res) => {
 app.listen(process.env.PORT || 3000, () => {
   console.log('Server running');
 });
+
+phone.incomingPhoneNumbers(process.env.PHONE_NUMBER_SID).update({voiceUrl: 'https://isa-telephony.onrender.com/recieve-call'})
+.then(number => console.log(number.friendlyName))
+.catch(err => console.error('Error updating Twilio phone number:', err));
