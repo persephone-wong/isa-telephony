@@ -1,7 +1,7 @@
-const form = document.getElementById("login-form");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
+const loginForm = document.getElementById("login-form");
+const registerForm = document.getElementById("register-form");
 const message = document.getElementById("form-message");
+const API_BASE_URL = "http://localhost:3000";
 
 function showMessage(text, type) {
 	message.textContent = text;
@@ -12,27 +12,82 @@ function isValidEmail(email) {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-form.addEventListener("submit", (event) => {
-	event.preventDefault();
-
-	const email = emailInput.value.trim();
-	const password = passwordInput.value;
-
+function validateEmailAndPassword(email, password) {
 	if (!email || !password) {
-		showMessage("Please enter both email and password.", "error");
-		return;
+		return "Please enter both email and password.";
 	}
 
 	if (!isValidEmail(email)) {
-		showMessage("Please enter a valid email address.", "error");
-		return;
+		return "Please enter a valid email address.";
 	}
 
 	if (password.length < 6) {
-		showMessage("Password must be at least 6 characters.", "error");
-		return;
+		return "Password must be at least 6 characters.";
 	}
 
-	showMessage("Login successful!", "success");
-	form.reset();
-});
+	return "";
+}
+
+async function postJson(path, payload) {
+	const response = await fetch(`${API_BASE_URL}${path}`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify(payload)
+	});
+
+	const data = await response.json().catch(() => ({}));
+
+	if (!response.ok) {
+		throw new Error(data.error || "Request failed.");
+	}
+
+	return data;
+}
+
+if (loginForm) {
+	loginForm.addEventListener("submit", async (event) => {
+		event.preventDefault();
+
+		const email = document.getElementById("email").value.trim();
+		const password = document.getElementById("password").value;
+		const validationError = validateEmailAndPassword(email, password);
+
+		if (validationError) {
+			showMessage(validationError, "error");
+			return;
+		}
+
+		try {
+			const result = await postJson("/login", { email, password });
+			showMessage(result.message || "Login successful!", "success");
+			window.location.href = "index.html";
+		} catch (error) {
+			showMessage(error.message, "error");
+		}
+	});
+}
+
+if (registerForm) {
+	registerForm.addEventListener("submit", async (event) => {
+		event.preventDefault();
+
+		const email = document.getElementById("register-email").value.trim();
+		const password = document.getElementById("register-password").value;
+		const validationError = validateEmailAndPassword(email, password);
+
+		if (validationError) {
+			showMessage(validationError, "error");
+			return;
+		}
+
+		try {
+			await postJson("/register", { email, password });
+			showMessage("Registration successful! You can now log in.", "success");
+			window.location.href = "index.html";
+		} catch (error) {
+			showMessage(error.message, "error");
+		}
+	});
+}

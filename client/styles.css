@@ -134,6 +134,18 @@ button:active {
     color: var(--success);
 }
 
+.page-link {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.page-link:hover {
+    text-decoration: underline;
+}
+
 @keyframes slide-up {
     from {
         opacity: 0;
