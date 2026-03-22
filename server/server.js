@@ -9,6 +9,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const clientDir = path.join(__dirname, '..', 'client');
+app.use(express.static(clientDir));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(clientDir, 'login.html'));
+});
+
 const appDatabaseUrl = process.env.DATABASE_URL || process.env.APP_DATABASE_URL;
 const adminDatabaseUrl = process.env.DATABASE_URL || process.env.ADMIN_DATABASE_URL;
 
