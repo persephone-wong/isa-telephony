@@ -86,8 +86,9 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.post('/recieve-call', (req, res) => {
-    const twiml = new Twilio.twiml.VoiceResponse();
+app.post('/receive-call', (req, res) => {
+    const VoiceResponse = twilio.twiml.VoiceResponse; // Import VoiceResponse correctly
+    const twiml = new VoiceResponse();
     twiml.say('This is ISA Telephony. Your call has been received and confirmed. Thank you for using our service!');
     res.type('text/xml');
     res.send(twiml.toString());
@@ -132,8 +133,9 @@ app.put('/admin/update-api-calls', requireAdmin, async (req, res) => {
 
 app.listen(process.env.PORT || 3000, () => {
   console.log('Server running');
-});
-
-phone.incomingPhoneNumbers(process.env.PHONE_NUMBER_SID).update({voiceUrl: 'https://isa-telephony.onrender.com/recieve-call'})
+  phone.incomingPhoneNumbers(process.env.PHONE_NUMBER_SID).update({voiceUrl: 'https://isa-telephony.onrender.com/receive-call'})
 .then(number => console.log(number.friendlyName))
 .catch(err => console.error('Error updating Twilio phone number:', err));
+});
+
+
