@@ -87,7 +87,7 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/receive-call', (req, res) => {
-    const VoiceResponse = twilio.twiml.VoiceResponse; // Import VoiceResponse correctly
+    const VoiceResponse = phone.twiml.VoiceResponse; // Import VoiceResponse correctly
     const twiml = new VoiceResponse();
     twiml.say('This is ISA Telephony. Your call has been received and confirmed. Thank you for using our service!');
     res.type('text/xml');
