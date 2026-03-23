@@ -1,89 +1,195 @@
-const express = require('express');
-const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt');
-const cors = require('cors');
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const express = require("express");
+const mysql = require("mysql2/promise");
+const bcrypt = require("bcrypt");
+const cors = require("cors");
+const path = require("path");
+const jwt = require("jsonwebtoken");
+
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const clientDir = path.join(__dirname, '..', 'client');
-app.use(express.static(clientDir, { index: false }));
-
-app.get(['/', '/index.html'], (req, res) => {
-  res.sendFile(path.join(clientDir, 'login.html'));
-});
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error("Missing JWT_SECRET in .env");
 
 const appDatabaseUrl = process.env.DATABASE_URL || process.env.APP_DATABASE_URL;
-const adminDatabaseUrl = process.env.DATABASE_URL || process.env.ADMIN_DATABASE_URL;
+const adminDatabaseUrl =
+  process.env.DATABASE_URL || process.env.ADMIN_DATABASE_URL;
 
 if (!appDatabaseUrl || !adminDatabaseUrl) {
-  throw new Error('Missing database URL. Set APP_DATABASE_URL/ADMIN_DATABASE_URL or DATABASE_URL in .env');
+  throw new Error(
+    "Missing database URL. Set APP_DATABASE_URL/ADMIN_DATABASE_URL or DATABASE_URL in .env",
+  );
 }
 
-// Regular app operations pool
-const appPool = mysql.createPool({
-  uri: appDatabaseUrl
-});
+const appPool = mysql.createPool({ uri: appDatabaseUrl });
+const adminPool = mysql.createPool({ uri: adminDatabaseUrl });
 
-// Admin operations pool
-const adminPool = mysql.createPool({
-  uri: adminDatabaseUrl
-});
+const FREE_CALL_LIMIT = 20;
+
+// ==================
+// HELPERS
+// ==================
+
+// escapes a string for safe HTML insertion — used server-side if ever templating,
+// and mirrored client-side (prevents xss).
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// ==================
+// MIDDLEWARE
+// ==================
+
+// verifies JWT and attaches decoded user to req.user.
+// Also increments api_calls_consumed and sets limit headers.
+async function requireAuth(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; // "Bearer <token>"
+
+  if (!token) return res.status(401).json({ error: "No token provided" });
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch {
+    return res.status(403).json({ error: "Invalid or expired token" });
+  }
+
+  try {
+    const [rows] = await appPool.query(
+      "SELECT id, email, api_calls_consumed, is_admin FROM users WHERE id = ?",
+      [decoded.userId],
+    );
+    const user = rows[0];
+    if (!user) return res.status(401).json({ error: "User not found" });
+
+    const calls = user.api_calls_consumed || 0;
+
+    await appPool.query(
+      "UPDATE users SET api_calls_consumed = api_calls_consumed + 1 WHERE id = ?",
+      [user.id],
+    );
+
+    res.setHeader("X-Api-Calls-Used", calls + 1);
+    res.setHeader("X-Api-Calls-Limit", FREE_CALL_LIMIT);
+    if (calls + 1 >= FREE_CALL_LIMIT) {
+      res.setHeader("X-Api-Limit-Reached", "true");
+    }
+
+    req.user = {
+      ...decoded,
+      api_calls_consumed: calls + 1,
+      is_admin: user.is_admin,
+    };
+    next();
+  } catch (err) {
+    console.error("Auth middleware error:", err);
+    res.status(500).json({ error: "Authentication check failed" });
+  }
+}
+
+// verifies the static admin key for admin-only routes
+function requireAdmin(req, res, next) {
+  const adminKey = req.headers["x-admin-key"];
+  if (adminKey !== process.env.ADMIN_SECRET_KEY) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  next();
+}
 
 // ==================
 // AUTH ROUTES
 // ==================
 
-app.post('/register', async (req, res) => {
+app.post("/register", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
+    return res.status(400).json({ error: "Email and password are required" });
   }
 
   const hash = await bcrypt.hash(password, 10);
 
   try {
-    await appPool.query(
-      'INSERT INTO users (email, password_hash) VALUES (?, ?)',
-      [email, hash]
+    const [result] = await appPool.query(
+      "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+      [email, hash], // parameterized — safe from SQL injection
     );
-    res.json({ success: true });
+    const token = jwt.sign({ userId: result.insertId, email }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    res.json({ success: true, token, isAdmin: false });
   } catch (err) {
-    if (err && err.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ error: 'Email already exists' });
+    if (err?.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "Email already exists" });
     }
-
-    console.error('Register error:', err);
-    res.status(500).json({ error: 'Registration failed' });
+    console.error("Register error:", err);
+    res.status(500).json({ error: "Registration failed" });
   }
 });
 
-app.post('/login', async (req, res) => {
+app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({ error: "Email and password are required" });
     }
 
     const [rows] = await appPool.query(
-      'SELECT id, email, password_hash FROM users WHERE email = ?',
-      [email]
+      "SELECT id, email, password_hash, is_admin FROM users WHERE email = ?",
+      [email], // parameterized — safe from SQL injection
     );
     const user = rows[0];
 
-    if (user && await bcrypt.compare(password, user.password_hash)) {
-      res.json({ success: true, message: 'Login successful' });
+    if (user && (await bcrypt.compare(password, user.password_hash))) {
+      const token = jwt.sign(
+        { userId: user.id, email: user.email, isAdmin: user.is_admin },
+        JWT_SECRET,
+        { expiresIn: "7d" },
+      );
+      res.json({ success: true, token, isAdmin: !!user.is_admin });
     } else {
-      res.status(401).json({ error: 'Invalid credentials' });
+      res.status(401).json({ error: "Invalid credentials" });
     }
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Login failed' });
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// ==================
+// DASHBOARD ROUTES
+// ==================
+
+// Returns the logged-in user's own stats — used by dashboard.html
+app.get("/me", requireAuth, async (req, res) => {
+  try {
+    const [rows] = await appPool.query(
+      "SELECT id, email, api_calls_consumed, is_admin FROM users WHERE id = ?",
+      [req.user.userId],
+    );
+    const user = rows[0];
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      apiCallsConsumed: user.api_calls_consumed,
+      apiCallsLimit: FREE_CALL_LIMIT,
+      isAdmin: !!user.is_admin,
+    });
+  } catch (err) {
+    console.error("Me error:", err);
+    res.status(500).json({ error: "Failed to fetch user data" });
   }
 });
 
@@ -91,39 +197,27 @@ app.post('/login', async (req, res) => {
 // ADMIN ROUTES
 // ==================
 
-// Middleware to protect admin routes
-function requireAdmin(req, res, next) {
-  const adminKey = req.headers['x-admin-key'];
-  if (adminKey !== process.env.ADMIN_SECRET_KEY) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  next();
-}
-
-// Get all users
-app.get('/admin/users', requireAdmin, async (req, res) => {
+app.get("/admin/users", requireAdmin, async (req, res) => {
   const [rows] = await adminPool.query(
-    'SELECT id, email, api_calls_consumed, created_at FROM users'
+    "SELECT id, email, api_calls_consumed, is_admin, created_at FROM users",
   );
   res.json(rows);
 });
 
-// Delete a user
-app.delete('/admin/delete-user', requireAdmin, async (req, res) => {
-  await adminPool.query('DELETE FROM users WHERE id = ?', [req.body.id]);
+app.delete("/admin/delete-user", requireAdmin, async (req, res) => {
+  await adminPool.query("DELETE FROM users WHERE id = ?", [req.body.id]);
   res.json({ success: true });
 });
 
-// Update api_calls_consumed for a user
-app.put('/admin/update-api-calls', requireAdmin, async (req, res) => {
+app.put("/admin/update-api-calls", requireAdmin, async (req, res) => {
   const { id, api_calls_consumed } = req.body;
   await adminPool.query(
-    'UPDATE users SET api_calls_consumed = ? WHERE id = ?',
-    [api_calls_consumed, id]
+    "UPDATE users SET api_calls_consumed = ? WHERE id = ?",
+    [api_calls_consumed, id],
   );
   res.json({ success: true });
 });
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log('Server running');
+  console.log("Server running");
 });

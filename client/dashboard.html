@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — ISA Telephony</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles/dashboard.css" />
+</head>
+
+<body>
+    <main class="dashboard-card" id="dashboard-root">
+        <div class="dashboard-header">
+            <h1>Dashboard <span class="role-badge">User</span></h1>
+            <button class="logout-btn" id="logout-btn">Log out</button>
+        </div>
+
+        <div class="user-info">
+            <div class="label">Signed in as</div>
+            <div class="value" id="user-email">—</div>
+        </div>
+
+        <div class="stat-block">
+            <div class="stat-row">
+                <span class="stat-label">API Calls Used</span>
+                <span class="stat-value"><span id="calls-used">—</span> / <span id="calls-limit">—</span></span>
+            </div>
+            <div class="bar-track">
+                <div class="bar-fill" id="calls-bar" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="api-warning" id="api-warning"></div>
+    </main>
+
+    <script src="client.js"></script>
+</body>
+
+</html>

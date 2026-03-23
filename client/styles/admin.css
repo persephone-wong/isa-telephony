@@ -1,0 +1,160 @@
+body {
+    display: block;
+    padding: 32px 24px;
+}
+
+.admin-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+}
+
+.admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+}
+
+.admin-header h1 {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.logout-btn {
+    width: auto;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid rgba(29, 38, 48, 0.2);
+    border-radius: 8px;
+}
+
+.logout-btn:hover {
+    background: rgba(29, 38, 48, 0.06);
+    color: var(--text);
+}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: var(--card);
+    border: 1px solid rgba(29, 38, 48, 0.08);
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 4px 16px rgba(24, 39, 75, 0.08);
+}
+
+.stat-card .num {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.stat-card .desc {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.table-wrap {
+    background: var(--card);
+    border: 1px solid rgba(29, 38, 48, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(24, 39, 75, 0.08);
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+thead {
+    background: rgba(31, 111, 235, 0.06);
+}
+
+th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    border-bottom: 1px solid rgba(29, 38, 48, 0.08);
+}
+
+td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(29, 38, 48, 0.05);
+    vertical-align: middle;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover td {
+    background: rgba(31, 111, 235, 0.03);
+}
+
+.badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.badge-admin {
+    background: rgba(31, 111, 235, 0.12);
+    color: var(--accent);
+}
+
+.badge-user {
+    background: rgba(29, 38, 48, 0.07);
+    color: var(--muted);
+}
+
+.mini-bar-wrap {
+    width: 100px;
+    height: 7px;
+    background: rgba(29, 38, 48, 0.1);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.mini-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--accent);
+    transition: width 400ms ease;
+}
+
+#admin-error {
+    color: var(--danger);
+    font-weight: 600;
+    margin-top: 16px;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(180, 35, 24, 0.1);
+    color: var(--danger);
+    margin-left: 8px;
+    vertical-align: middle;
+}
