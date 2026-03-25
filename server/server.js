@@ -42,7 +42,8 @@ class ServerApp {
 
   setupStaticRoutes() {
     this.app.get(['/', '/index.html'], (req, res) => {
-      res.sendFile(path.join(this.clientDir, 'login.html'));
+      // res.sendFile(path.join(this.clientDir, 'login.html'));
+      res.redirect(200, '/login.html');
     });
   }
 
@@ -75,10 +76,11 @@ class ServerApp {
 
       const calls = user.api_calls_consumed || 0;
 
-      await this.appPool.query(
-        "UPDATE users SET api_calls_consumed = api_calls_consumed + 1 WHERE id = ?",
-        [user.id],
-      );
+      // ToDo: Move below query to increment api_calls_consumed only when a call has been made
+      // await this.appPool.query(
+      //   "UPDATE users SET api_calls_consumed = api_calls_consumed + 1 WHERE id = ?",
+      //   [user.id],
+      // );
 
       res.setHeader("X-Api-Calls-Used", calls + 1);
       res.setHeader("X-Api-Calls-Limit", this.FREE_CALL_LIMIT);
