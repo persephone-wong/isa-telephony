@@ -218,7 +218,7 @@ app.post('/process_speech', async (req, res) => {
 });
 
 async function callAI(speechText) {
-  const response = await fetch("https://isa-telephony-1.onrender.com/chat",
+  const response = await fetch("https://isa-telephony-gglp.onrender.com/chat",
     {
       method: 'POST',
       headers: {"Content-Type": "application/json"},
