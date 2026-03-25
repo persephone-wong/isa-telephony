@@ -225,7 +225,17 @@ async function callAI(speechText) {
       body: JSON.stringify({text: speechText})
     }
   )
+
+  if (!response.ok) {
+    console.error("AI API error:", await response.text());
+    return "Sorry, there was an error connecting to the AI.";
+  }
+
   const aiResponse =await response.json();
+  if (!aiResponse.reply) {
+    console.error("AI API invalid response:", aiResponse);
+    return "Sorry, I didn't understand the response from the AI.";
+  }
   return aiResponse.reply;
 }
 
