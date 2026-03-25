@@ -8,8 +8,17 @@ const jwt = require("jsonwebtoken");
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
+const clientDir = path.join(__dirname, '..', 'client');
+
+app.use(express.static(clientDir, { index: false }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+
+app.get(['/', '/index.html'], (req, res) => {
+  res.sendFile(path.join(clientDir, 'login.html'));
+});
+
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const phone = twilio(accountSid, authToken);
@@ -28,23 +37,7 @@ if (!appDatabaseUrl || !adminDatabaseUrl) {
 
 const appPool = mysql.createPool({ uri: appDatabaseUrl });
 const adminPool = mysql.createPool({ uri: adminDatabaseUrl });
-
 const FREE_CALL_LIMIT = 20;
-
-// ==================
-// HELPERS
-// ==================
-
-// escapes a string for safe HTML insertion — used server-side if ever templating,
-// and mirrored client-side (prevents xss).
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 // ==================
 // MIDDLEWARE
@@ -112,7 +105,7 @@ function requireAdmin(req, res, next) {
 // ==================
 
 app.post("/register", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required" });
@@ -140,7 +133,7 @@ app.post("/register", async (req, res) => {
 
 app.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
 
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
@@ -195,33 +188,6 @@ app.get("/me", requireAuth, async (req, res) => {
   }
 });
 
-// ==================
-// DASHBOARD ROUTES
-// ==================
-
-// Returns the logged-in user's own stats — used by dashboard.html
-app.get("/me", requireAuth, async (req, res) => {
-  try {
-    const [rows] = await appPool.query(
-      "SELECT id, email, api_calls_consumed, is_admin FROM users WHERE id = ?",
-      [req.user.userId],
-    );
-    const user = rows[0];
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    res.json({
-      id: user.id,
-      email: user.email,
-      apiCallsConsumed: user.api_calls_consumed,
-      apiCallsLimit: FREE_CALL_LIMIT,
-      isAdmin: !!user.is_admin,
-    });
-  } catch (err) {
-    console.error("Me error:", err);
-    res.status(500).json({ error: "Failed to fetch user data" });
-  }
-});
-
 app.post('/receive-call', (req, res) => {
     const VoiceResponse = twilio.twiml.VoiceResponse;
     const response = new VoiceResponse();
@@ -237,7 +203,7 @@ app.post('/receive-call', (req, res) => {
 });
 
 app.post('/process_speech', (req, res) => {
-    const speechResult = req.body.SpeechResult; // what the caller said
+  const speechResult = req.body?.SpeechResult || 'nothing'; // what the caller said
     const VoiceResponse = twilio.twiml.VoiceResponse;
     const response = new VoiceResponse();
     response.say(`You said: ${speechResult}. Thank you for calling ISA Telephony. Goodbye!`);
@@ -275,9 +241,18 @@ app.put("/admin/update-api-calls", requireAdmin, async (req, res) => {
 
 app.listen(process.env.PORT || 3000, () => {
   console.log('Server running');
-  phone.incomingPhoneNumbers(process.env.PHONE_NUMBER_SID).update({voiceUrl: 'https://isa-telephony.onrender.com/receive-call'})
-.then(number => console.log(number.friendlyName))
-.catch(err => console.error('Error updating Twilio phone number:', err));
+
+  const phoneNumberSid = process.env.PHONE_NUMBER_SID;
+  if (!phoneNumberSid) {
+    console.warn('PHONE_NUMBER_SID is missing; skipping Twilio voice URL update.');
+    return;
+  }
+
+  phone
+    .incomingPhoneNumbers(phoneNumberSid)
+    .update({ voiceUrl: 'https://isa-telephony.onrender.com/receive-call' })
+    .then((number) => console.log(number.friendlyName))
+    .catch((err) => console.error('Error updating Twilio phone number:', err));
 });
 
 
