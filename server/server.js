@@ -238,17 +238,30 @@ app.post('/receive-call', (req, res) => {
     res.send(response.toString());
 });
 
-app.post('/process_speech', (req, res) => {
-    const speechResult = req.body.SpeechResult; // what the caller said
+app.post('/process_speech', async (req, res) => {
+    const speechResult = req.body.SpeechResult;
+
+    const aiReply = await callAI(speechResult);
+
     const VoiceResponse = twilio.twiml.VoiceResponse;
     const response = new VoiceResponse();
-    response.say(`You said: ${speechResult}. Thank you for calling ISA Telephony. Goodbye!`);
+    response.say(`${aiReply}`);
+
     res.type('text/xml');
     res.send(response.toString());
 });
 
-
-
+async function callAI(speechText) {
+  const response = await fetch("https://isa-telephony-1.onrender.com/chat",
+    {
+      method: 'POST',
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({text: speechText})
+    }
+  )
+  const aiResponse =await response.json();
+  return aiResponse.reply;
+}
 
 // ==================
 // ADMIN ROUTES
