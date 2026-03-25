@@ -14,6 +14,7 @@ app.use(express.static(clientDir, { index: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use(express.urlencoded({ extended: false }))
 
 app.get(['/', '/index.html'], (req, res) => {
   res.sendFile(path.join(clientDir, 'login.html'));
@@ -191,28 +192,42 @@ app.get("/me", requireAuth, async (req, res) => {
 app.post('/receive-call', (req, res) => {
     const VoiceResponse = twilio.twiml.VoiceResponse;
     const response = new VoiceResponse();
+    response.say('Welcome to the ISA Virtual Call Assistant! Please talk after the beep.');
     const gather = response.gather({
     input: 'speech',
     action: '/process_speech',
-    method: 'POST'
+    method: 'POST',
+    playBeep: true
 });
-    gather.say('This is ISA Telephony. Your call has been received and confirmed. Say something now');
 
     res.type('text/xml');
     res.send(response.toString());
 });
 
-app.post('/process_speech', (req, res) => {
-  const speechResult = req.body?.SpeechResult || 'nothing'; // what the caller said
+app.post('/process_speech', async (req, res) => {
+    const speechResult = req.body.SpeechResult;
+
+    const aiReply = await callAI(speechResult);
+
     const VoiceResponse = twilio.twiml.VoiceResponse;
     const response = new VoiceResponse();
-    response.say(`You said: ${speechResult}. Thank you for calling ISA Telephony. Goodbye!`);
+    response.say(`${aiReply}`);
+
     res.type('text/xml');
     res.send(response.toString());
 });
 
-
-
+async function callAI(speechText) {
+  const response = await fetch("https://isa-telephony-1.onrender.com/chat",
+    {
+      method: 'POST',
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({text: speechText})
+    }
+  )
+  const aiResponse =await response.json();
+  return aiResponse.reply;
+}
 
 // ==================
 // ADMIN ROUTES
