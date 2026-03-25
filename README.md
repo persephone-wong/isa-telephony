@@ -7,6 +7,7 @@ This project is split into two parts:
 
 - `client/` for frontend pages (login, register, landing page)
 - `server/` for the Express API and MySQL access
+- phone number associated with the server is +1 (254) 503-5464
 
 ## Folder Structure
 
