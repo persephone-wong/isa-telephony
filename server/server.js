@@ -88,11 +88,29 @@ app.post('/login', async (req, res) => {
 
 app.post('/receive-call', (req, res) => {
     const VoiceResponse = twilio.twiml.VoiceResponse;
-    const twiml = new VoiceResponse();
-    twiml.say('This is ISA Telephony. Your call has been received and confirmed. Thank you for using our service!');
-    res.type('text/xml');
-    res.send(twiml.toString());
+    const response = new VoiceResponse();
+    const gather = response.gather({
+    input: 'speech',
+    action: '/process_speech',
+    method: 'POST'
 });
+    gather.say('This is ISA Telephony. Your call has been received and confirmed. Say something now');
+
+    res.type('text/xml');
+    res.send(response.toString());
+});
+
+app.post('/process_speech', (req, res) => {
+    const speechResult = req.body.SpeechResult; // what the caller said
+    const VoiceResponse = twilio.twiml.VoiceResponse;
+    const response = new VoiceResponse();
+    response.say(`You said: ${speechResult}. Thank you for calling ISA Telephony. Goodbye!`);
+    res.type('text/xml');
+    res.send(response.toString());
+});
+
+
+
 
 // ==================
 // ADMIN ROUTES
