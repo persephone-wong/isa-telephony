@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
+const PORT = process.env.PORT || 8000;
 const HF_API_TOKEN = process.env.HF_API_TOKEN;
 
 app.use(cors());
@@ -49,4 +50,6 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-app.listen(8000, () => console.log('Server running at http://localhost:8000'));
+app.listen(PORT, () => {
+  console.log(`AI server running on port ${PORT}`);
+});
