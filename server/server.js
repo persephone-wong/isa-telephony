@@ -10,6 +10,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(express.urlencoded({ extended: false }))
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const phone = twilio(accountSid, authToken);
@@ -225,12 +226,13 @@ app.get("/me", requireAuth, async (req, res) => {
 app.post('/receive-call', (req, res) => {
     const VoiceResponse = twilio.twiml.VoiceResponse;
     const response = new VoiceResponse();
+    response.say('Welcome to the ISA Virtual Call Assistant! Please talk after the beep.');
     const gather = response.gather({
     input: 'speech',
     action: '/process_speech',
-    method: 'POST'
+    method: 'POST',
+    playBeep: true
 });
-    gather.say('This is ISA Telephony. Your call has been received and confirmed. Say something now');
 
     res.type('text/xml');
     res.send(response.toString());
