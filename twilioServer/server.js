@@ -61,6 +61,7 @@ class TwilioService {
             action: '/process_speech',
             method: 'POST',
             speechTimeout: 'auto',
+            speechModel: 'phone_call',
         });
         res.type('text/xml');
         res.send(response.toString());
@@ -79,8 +80,7 @@ class TwilioService {
 
       const response = new VoiceResponse();
       response.say(aiReply);
-      res.redirect('/listen');
-
+      response.redirect({ method: 'POST' }, '/listen');
       res.type('text/xml');
       res.send(response.toString());
     }
