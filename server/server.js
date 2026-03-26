@@ -42,8 +42,7 @@ class ServerApp {
 
   setupStaticRoutes() {
     this.app.get(['/', '/index.html'], (req, res) => {
-      // res.sendFile(path.join(this.clientDir, 'login.html'));
-      res.redirect(200, '/login.html');
+      res.redirect('/login.html');
     });
   }
 
