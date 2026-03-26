@@ -29,8 +29,17 @@ class TwilioService {
     }
 
     setupRoutes() {
-        this.app.post('/receive-call', (req, res) => {
-            this.recieveCall(req, res);
+
+        this.app.get('/call', async (req, res) => {
+            await this.call(req, res);
+        })
+
+        this.app.get('/start', async (req, res) => {
+            await this.startCall(req, res);
+        });
+
+        this.app.post('/receive-call', async (req, res) => {
+            await this.recieveCall(req, res);
         });
 
         this.app.post('/listen', async (req, res) => {
@@ -40,11 +49,49 @@ class TwilioService {
         this.app.post('/process_speech', async (req, res) => {
             this.processCall(req, res);
         });
+
+
     }
 
-    recieveCall(req, res) {
+    async call(req, res) {
+        const { prompt, phoneNumber } = req.body;
+        if (!prompt || !phoneNumber) {
+            return res.status(400).json({ error: 'prompt and phoneNumber are required' });
+        }
+        try {
+            const call = await this.phone.calls.create({
+                to: phoneNumber,
+                from: process.env.TWILIO_PHONE_NUMBER,
+                url: `https://isa-phone-service.onrender.com/start?prompt=${encodeURIComponent(prompt)}`,
+                method: 'POST',
+            });
+            res.json({ message: 'Call initiated', callSid: call.sid });
+        } catch (error) {
+            console.error('Error initiating call:', error);
+            return res.status(500).json({ error: 'Failed to initiate call' });
+        }
+    }
+
+    async startCall(req, res) {
+        const prompt = req.query.prompt || 'Hello! This is a call from ISA. How can I assist you today?';
+
+        const aiReply = await this.callAI(prompt);
+
         const response = new VoiceResponse();
-        response.say('Welcome to the ISA Virtual Call Assistant! What query do you have.');
+        const gather = response.gather({
+            input: 'speech',
+            action: '/process_speech',
+            method: 'POST',
+            speechTimeout: 'auto',
+            speechModel: 'phone_call',
+        });
+        res.type('text/xml');
+        res.send(response.toString());
+    }
+
+    async recieveCall(req, res) {
+        const response = new VoiceResponse();
+        response.say('Welcome to the Virtual Call Assistant! What query do you have.');
         response.gather({
             input: 'speech',
             action: '/process_speech',
