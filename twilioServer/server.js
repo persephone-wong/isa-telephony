@@ -34,7 +34,7 @@ class TwilioService {
             await this.call(req, res);
         })
 
-        this.app.get('/start', async (req, res) => {
+        this.app.post('/start', async (req, res) => {
             await this.startCall(req, res);
         });
 
@@ -85,10 +85,11 @@ class TwilioService {
             speechTimeout: 'auto',
             speechModel: 'phone_call',
         });
+        gather.say(aiReply);
+
         res.type('text/xml');
         res.send(response.toString());
     }
-
     async recieveCall(req, res) {
         const response = new VoiceResponse();
         const gather = response.gather({
@@ -102,7 +103,7 @@ class TwilioService {
         res.type('text/xml');
         res.send(response.toString());
     }
-    
+
     listen(req, res) {
         const response = new VoiceResponse();
         response.say('Listening for your query');
