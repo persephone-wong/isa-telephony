@@ -108,27 +108,6 @@ class ServerApp {
     next();
   }
 
-  async callAI(speechText) {
-    const response = await fetch("https://isa-telephony-gglp.onrender.com/chat",
-      {
-        method: 'POST',
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({text: speechText})
-      }
-    )
-
-    if (!response.ok) {
-      console.error("AI API error:", await response.text());
-      return "Sorry, there was an error connecting to the AI.";
-    }
-
-    const aiResponse =await response.json();
-    if (!aiResponse.reply) {
-      console.error("AI API invalid response:", aiResponse);
-      return "Sorry, I didn't understand the response from the AI.";
-    }
-    return aiResponse.reply;
-  }
 
   setupRoutes() {
     // ==================
@@ -217,34 +196,6 @@ class ServerApp {
         console.error("Me error:", err);
         res.status(500).json({ error: "Failed to fetch user data" });
       }
-    });
-
-    this.app.post('/receive-call', (req, res) => {
-        const VoiceResponse = twilio.twiml.VoiceResponse;
-        const response = new VoiceResponse();
-        response.say('Welcome to the ISA Virtual Call Assistant! Please talk after the beep.');
-        const gather = response.gather({
-        input: 'speech',
-        action: '/process_speech',
-        method: 'POST',
-        playBeep: true
-    });
-
-        res.type('text/xml');
-        res.send(response.toString());
-    });
-
-    this.app.post('/process_speech', async (req, res) => {
-        const speechResult = req.body.SpeechResult;
-
-        const aiReply = await this.callAI(speechResult);
-
-        const VoiceResponse = twilio.twiml.VoiceResponse;
-        const response = new VoiceResponse();
-        response.say(`${aiReply}`);
-
-        res.type('text/xml');
-        res.send(response.toString());
     });
 
     // ==================
