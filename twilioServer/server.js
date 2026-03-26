@@ -124,7 +124,7 @@ class TwilioService {
 
       this.phone
         .incomingPhoneNumbers(phoneNumberSid)
-        .update({ voiceUrl: 'https://isa-telephony.onrender.com/receive-call' })
+        .update({ voiceUrl: 'https://isa-phone-service.onrender.com/receive-call' })
         .then((number) => console.log(number.friendlyName))
         .catch((err) => console.error('Error updating Twilio phone number:', err));
     });
