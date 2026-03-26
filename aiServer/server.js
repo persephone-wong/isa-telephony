@@ -22,40 +22,38 @@ class AIServerApp {
   }
 
   setupRoutes() {
-    this.app.post('/chat', async (req, res) => {
-      const { text } = req.body;
+this.app.post('/chat', async (req, res) => {
+  const { text, messages } = req.body;
 
-      if (!text) {
-        return res.status(400).json({ error: 'text field is required' });
+  // Build messages array from whichever format was sent
+  const chatMessages = messages || [{ role: 'user', content: text }];
+
+  if (!chatMessages.length) {
+    return res.status(400).json({ error: 'text or messages field is required' });
+  }
+
+  try {
+    const response = await fetch(
+      'https://router.huggingface.co/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${HF_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'meta-llama/Llama-3.1-8B-Instruct',
+          messages: chatMessages, // pass through directly
+          max_tokens: 200,
+        }),
       }
-
-      if (!HF_API_TOKEN) {
-        return res.status(500).json({ error: 'Missing HF_API_TOKEN in .env' });
-      }
-
-      try {
-        const response = await fetch(
-          'https://router.huggingface.co/v1/chat/completions',
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${HF_API_TOKEN}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'meta-llama/Llama-3.1-8B-Instruct',
-              messages: [{ role: 'user', content: text }],
-              max_tokens: 200
-            }),
-          }
-        );
-
-        const data = await response.json();
-        res.json({ reply: data.choices[0].message.content });
-      } catch (err) {
-        res.status(500).json({ error: err.message });
-      }
-    });
+    );
+    const data = await response.json();
+    res.json({ reply: data.choices[0].message.content });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
   }
 
   start() {

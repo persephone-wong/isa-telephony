@@ -101,13 +101,23 @@ class TwilioService {
 
 
   async callAI(speechText, history = []) {
-    const historyText = history.map((entry) => 
-        `User: ${entry.user}\nAI: ${entry.ai}`).join('\n');
+  try {
+    const messages = [
+      ...history.flatMap(turn => [
+        { role: 'user', content: turn.user },
+        { role: 'assistant', content: turn.ai },
+      ]),
+      { role: 'user', content: speechText },
+    ];
+} catch (error) {
+    console.error('Error preparing AI messages:', error);
+  }
+    
     try {
       const response = await fetch('https://isa-telephony-gglp.onrender.com/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: speechText }),
+        body: JSON.stringify({ messages }),
       });
 
       if (!response.ok) {
