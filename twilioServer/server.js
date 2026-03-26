@@ -30,7 +30,7 @@ class TwilioService {
 
     setupRoutes() {
 
-        this.app.get('/call', async (req, res) => {
+        this.app.post('/call', async (req, res) => {
             await this.call(req, res);
         })
 
@@ -91,17 +91,18 @@ class TwilioService {
 
     async recieveCall(req, res) {
         const response = new VoiceResponse();
-        response.say('Welcome to the Virtual Call Assistant! What query do you have.');
-        response.gather({
+        const gather = response.gather({
             input: 'speech',
             action: '/process_speech',
             method: 'POST',
             speechTimeout: 'auto',
         });
+        gather.say('Welcome to the Virtual Call Assistant! What query do you have?');
+
         res.type('text/xml');
         res.send(response.toString());
     }
-
+    
     listen(req, res) {
         const response = new VoiceResponse();
         response.say('Listening for your query');
