@@ -11,6 +11,8 @@ class TwilioService {
     this.app = express();
     this.clientDir = path.join(__dirname, '..', 'client');
 
+    this.callLogs = {};
+
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     this.phone = twilio(accountSid, authToken);
@@ -69,6 +71,13 @@ class TwilioService {
 
     async processCall(req, res) {
       const speechResult = req.body.SpeechResult || '';
+      const callSid = req.body.CallSid || 'unknown';
+
+      if (!callSid) return;
+      if (!this.callLogs[callSid]) {
+      this.callLogs[callSid] = [];
+      }
+
       if (!speechResult) {
         const response = new VoiceResponse();
         response.say("Sorry, I didn't catch that. Please try again.");
@@ -78,6 +87,11 @@ class TwilioService {
 
       const aiReply = await this.callAI(speechResult);
 
+    this.callLogs[callSid].push({
+    timestamp: new Date().toISOString(),
+    user: speechResult,
+    ai: aiReply,});
+
       const response = new VoiceResponse();
       response.say(aiReply);
       response.redirect({ method: 'POST' }, '/listen');
@@ -86,7 +100,9 @@ class TwilioService {
     }
 
 
-  async callAI(speechText) {
+  async callAI(speechText, history = []) {
+    const historyText = history.map((entry) => 
+        `User: ${entry.user}\nAI: ${entry.ai}`).join('\n');
     try {
       const response = await fetch('https://isa-telephony-gglp.onrender.com/chat', {
         method: 'POST',
