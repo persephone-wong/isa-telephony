@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const twilio = require('twilio');
 const path = require('path');
+const VoiceResponse = require('twilio/lib/twiml/VoiceResponse');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -27,33 +28,62 @@ class TwilioService {
 
   setupRoutes() {
     this.app.post('/receive-call', (req, res) => {
-      const VoiceResponse = twilio.twiml.VoiceResponse;
-      const response = new VoiceResponse();
+      this.recieveCall(req, res);
+    });
 
-      response.say('Welcome to the ISA Virtual Call Assistant! Please talk after the beep.');
-      response.gather({
-        input: 'speech',
-        action: '/process_speech',
-        method: 'POST',
-        speechTimeout: 'auto',
-      });
-
-      res.type('text/xml');
-      res.send(response.toString());
+    this.app.post('/listen', async (req, res) => {
+        this.listen(req, res);
     });
 
     this.app.post('/process_speech', async (req, res) => {
+      this.processCall(req, res);
+    });
+  }
+
+  recieveCall(req, res) {
+    const response = new VoiceResponse();
+    response.say('Welcome to the ISA Virtual Call Assistant! What query do you have.');
+    response.gather({
+      input: 'speech',
+      action: '/process_speech',
+      method: 'POST',
+      speechTimeout: 'auto',
+    }); 
+    res.type('text/xml');
+    res.send(response.toString());
+}
+
+    listen(req, res) {
+      const response = new VoiceResponse();
+      response.say('Listening for your query. Please speak after the beep.');
+        response.gather({
+            input: 'speech',
+            action: '/process_speech',
+            method: 'POST',
+            speechTimeout: 'auto',
+        });
+        res.type('text/xml');
+        res.send(response.toString());
+    }
+
+    async processCall(req, res) {
       const speechResult = req.body.SpeechResult || '';
+      if (!speechResult) {
+        const response = new VoiceResponse();
+        response.say("Sorry, I didn't catch that. Please try again.");
+        res.type('text/xml');
+        return res.send(response.toString());
+      }
+
       const aiReply = await this.callAI(speechResult);
 
-      const VoiceResponse = twilio.twiml.VoiceResponse;
       const response = new VoiceResponse();
       response.say(aiReply);
 
       res.type('text/xml');
       res.send(response.toString());
-    });
-  }
+    }
+
 
   async callAI(speechText) {
     try {
