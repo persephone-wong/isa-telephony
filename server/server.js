@@ -51,7 +51,6 @@ class ServerApp {
   // ==================
 
   // verifies JWT and attaches decoded user to req.user.
-  // Also increments api_calls_consumed and sets limit headers.
   async requireAuth(req, res, next) {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1]; // "Bearer <token>"
