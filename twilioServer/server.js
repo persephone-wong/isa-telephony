@@ -55,7 +55,7 @@ class TwilioService {
 
     listen(req, res) {
       const response = new VoiceResponse();
-      response.say('Listening for your query. Please speak after the beep.');
+      response.say('Listening for your query');
         response.gather({
             input: 'speech',
             action: '/process_speech',
@@ -79,6 +79,7 @@ class TwilioService {
 
       const response = new VoiceResponse();
       response.say(aiReply);
+      res.redirect('/listen');
 
       res.type('text/xml');
       res.send(response.toString());
