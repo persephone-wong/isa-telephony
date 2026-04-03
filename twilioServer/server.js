@@ -50,7 +50,14 @@ class TwilioService {
             this.processCall(req, res);
         });
 
-
+        this.app.get('/call-logs/:callSid', (req, res) => {
+            const { callSid } = req.params;
+            const logs = this.callLogs[callSid];
+            if (!logs) {
+                return res.status(404).json({ error: 'No logs found for this call' });
+            }
+            res.json({ callSid, logs });
+        });
     }
 
     async call(req, res) {
