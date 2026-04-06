@@ -57,6 +57,35 @@ class TwilioService {
       }
       res.json({ callSid, logs });
     });
+
+    // Gurveer Raith: Added this endpoint
+    this.app.get("/transcript-stream/:callSid", (req, res) => {
+      const { callSid } = req.params;
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders();
+
+      // Send any existing logs immediately on connect
+      const existingLogs = this.callLogs[callSid] || [];
+      if (existingLogs.length > 0) {
+        res.write(`data: ${JSON.stringify({ logs: existingLogs })}\n\n`);
+      }
+
+      // Poll internal state and push new entries every second
+      let lastSentCount = existingLogs.length;
+      const interval = setInterval(() => {
+        const logs = this.callLogs[callSid] || [];
+        if (logs.length > lastSentCount) {
+          const newEntries = logs.slice(lastSentCount);
+          res.write(`data: ${JSON.stringify({ logs: newEntries })}\n\n`);
+          lastSentCount = logs.length;
+        }
+      }, 1000);
+
+      req.on("close", () => clearInterval(interval));
+    });
   }
 
   async call(req, res) {
