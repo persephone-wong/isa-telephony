@@ -253,7 +253,7 @@ class TwilioService {
   }
 
   start() {
-    this.app.listen(process.env.PORT || 3000, () => {
+    this.app.listen(process.env.PORT || 4000, () => {
       console.log("Server running");
 
       const phoneNumberSid = process.env.PHONE_NUMBER_SID;

@@ -1,25 +1,23 @@
-const express = require('express');
-const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt');
-const cors = require('cors');
-const path = require('path');
-const twilio = require('twilio');
+const express = require("express");
+const mysql = require("mysql2/promise");
+const bcrypt = require("bcrypt");
+const cors = require("cors");
+const path = require("path");
 const jwt = require("jsonwebtoken");
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 class ServerApp {
   constructor() {
     this.app = express();
-    this.clientDir = path.join(__dirname, '..', 'client');
+    this.clientDir = path.join(__dirname, "..", "client");
 
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    this.phone = twilio(accountSid, authToken);
     this.JWT_SECRET = process.env.JWT_SECRET;
     if (!this.JWT_SECRET) throw new Error("Missing JWT_SECRET in .env");
 
-    const appDatabaseUrl = process.env.DATABASE_URL || process.env.APP_DATABASE_URL;
-    const adminDatabaseUrl = process.env.DATABASE_URL || process.env.ADMIN_DATABASE_URL;
+    const appDatabaseUrl =
+      process.env.DATABASE_URL || process.env.APP_DATABASE_URL;
+    const adminDatabaseUrl =
+      process.env.DATABASE_URL || process.env.ADMIN_DATABASE_URL;
 
     if (!appDatabaseUrl || !adminDatabaseUrl) {
       throw new Error(
@@ -36,12 +34,12 @@ class ServerApp {
     this.app.use(express.static(this.clientDir, { index: false }));
     this.app.use(express.json());
     this.app.use(cors());
-    this.app.use(express.urlencoded({ extended: false }))
+    this.app.use(express.urlencoded({ extended: false }));
   }
 
   setupStaticRoutes() {
-    this.app.get(['/', '/index.html'], (req, res) => {
-      res.redirect('/login.html');
+    this.app.get(["/", "/index.html"], (req, res) => {
+      res.redirect("/login.html");
     });
   }
 
@@ -106,7 +104,6 @@ class ServerApp {
     next();
   }
 
-
   setupRoutes() {
     // ==================
     // AUTH ROUTES
@@ -116,7 +113,9 @@ class ServerApp {
       const { email, password } = req.body || {};
 
       if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
+        return res
+          .status(400)
+          .json({ error: "Email and password are required" });
       }
 
       const hash = await bcrypt.hash(password, 10);
@@ -126,9 +125,13 @@ class ServerApp {
           "INSERT INTO users (email, password_hash) VALUES (?, ?)",
           [email, hash], // parameterized — safe from SQL injection
         );
-        const token = jwt.sign({ userId: result.insertId, email }, this.JWT_SECRET, {
-          expiresIn: "7d",
-        });
+        const token = jwt.sign(
+          { userId: result.insertId, email },
+          this.JWT_SECRET,
+          {
+            expiresIn: "7d",
+          },
+        );
         res.json({ success: true, token, isAdmin: false });
       } catch (err) {
         if (err?.code === "ER_DUP_ENTRY") {
@@ -144,7 +147,9 @@ class ServerApp {
         const { email, password } = req.body || {};
 
         if (!email || !password) {
-          return res.status(400).json({ error: "Email and password are required" });
+          return res
+            .status(400)
+            .json({ error: "Email and password are required" });
         }
 
         const [rows] = await this.appPool.query(
@@ -207,36 +212,34 @@ class ServerApp {
       res.json(rows);
     });
 
-    this.app.delete("/admin/delete-user", this.requireAdmin, async (req, res) => {
-      await this.adminPool.query("DELETE FROM users WHERE id = ?", [req.body.id]);
-      res.json({ success: true });
-    });
+    this.app.delete(
+      "/admin/delete-user",
+      this.requireAdmin,
+      async (req, res) => {
+        await this.adminPool.query("DELETE FROM users WHERE id = ?", [
+          req.body.id,
+        ]);
+        res.json({ success: true });
+      },
+    );
 
-    this.app.put("/admin/update-api-calls", this.requireAdmin, async (req, res) => {
-      const { id, api_calls_consumed } = req.body;
-      await this.adminPool.query(
-        "UPDATE users SET api_calls_consumed = ? WHERE id = ?",
-        [api_calls_consumed, id],
-      );
-      res.json({ success: true });
-    });
+    this.app.put(
+      "/admin/update-api-calls",
+      this.requireAdmin,
+      async (req, res) => {
+        const { id, api_calls_consumed } = req.body;
+        await this.adminPool.query(
+          "UPDATE users SET api_calls_consumed = ? WHERE id = ?",
+          [api_calls_consumed, id],
+        );
+        res.json({ success: true });
+      },
+    );
   }
 
   start() {
     this.app.listen(process.env.PORT || 3000, () => {
-      console.log('Server running');
-
-      const phoneNumberSid = process.env.PHONE_NUMBER_SID;
-      if (!phoneNumberSid) {
-        console.warn('PHONE_NUMBER_SID is missing; skipping Twilio voice URL update.');
-        return;
-      }
-
-      this.phone
-        .incomingPhoneNumbers(phoneNumberSid)
-        .update({ voiceUrl: 'https://isa-telephony.onrender.com/receive-call' })
-        .then((number) => console.log(number.friendlyName))
-        .catch((err) => console.error('Error updating Twilio phone number:', err));
+      console.log("Server running");
     });
   }
 
@@ -250,5 +253,3 @@ class ServerApp {
 
 const serverApp = new ServerApp();
 serverApp.init();
-
-
