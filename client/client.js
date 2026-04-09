@@ -234,12 +234,15 @@ class ClientApp {
         body: JSON.stringify({ phone, reason }),
       });
 
-      if (!result.callSid)
-        console.error("Unexpected response from client.js:", result);
+      console.log("RESULT:", result);
 
-      setTimeout(() => {
-        window.location.href = `/transcript.html?callSid=${result.callSid}`;
-      }, 800);
+      const callSid = result.callSid;
+
+      if (!callSid) {
+        throw new Error("callSid missing from response");
+      }
+
+      window.location.href = `/transcript.html?callSid=${callSid}`;
     });
   }
 
