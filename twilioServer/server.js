@@ -110,11 +110,30 @@ class TwilioService {
   }
 
   async startCall(req, res) {
+    const callSid = req.body.CallSid;
+
+    if (!callSid) {
+      console.error("Missing CallSid in startCall");
+      return res.status(400).send("Missing CallSid");
+    }
+
     const prompt =
       req.query.prompt ||
       "Hello! This is a call from ISA. How can I assist you today?";
 
-    const aiReply = await this.callAI(prompt);
+    // Initialize logs
+    if (!this.callLogs[callSid]) {
+      this.callLogs[callSid] = [];
+    }
+
+    // Generate first AI reply
+    const aiReply = await this.callAI(prompt, []);
+
+    this.callLogs[callSid].push({
+      timestamp: new Date().toISOString(),
+      user: prompt,
+      ai: aiReply,
+    });
 
     const response = new VoiceResponse();
     const gather = response.gather({
@@ -124,47 +143,22 @@ class TwilioService {
       speechTimeout: "auto",
       speechModel: "phone_call",
     });
+
     gather.say(aiReply);
 
     res.type("text/xml");
     res.send(response.toString());
   }
-  async recieveCall(req, res) {
-    const response = new VoiceResponse();
-    const gather = response.gather({
-      input: "speech",
-      action: "/process_speech",
-      method: "POST",
-      speechTimeout: "auto",
-    });
-    gather.say(
-      "Welcome to the Virtual Call Assistant! What query do you have?",
-    );
 
-    res.type("text/xml");
-    res.send(response.toString());
-  }
-
-  listen(req, res) {
-    const response = new VoiceResponse();
-    response.say("Listening for your query");
-    response.gather({
-      input: "speech",
-      action: "/process_speech",
-      method: "POST",
-      speechTimeout: "auto",
-      speechModel: "phone_call",
-    });
-    res.type("text/xml");
-    res.send(response.toString());
-  }
-
-  // Gurveer Raith: Updated Process call
   async processCall(req, res) {
     const speechResult = req.body.SpeechResult || "";
-    const callSid = req.body.CallSid || "unknown";
+    const callSid = req.body.CallSid;
 
-    if (!callSid) return;
+    if (!callSid) {
+      console.error("Missing CallSid in processCall");
+      return res.status(400).send("Missing CallSid");
+    }
+
     if (!this.callLogs[callSid]) {
       this.callLogs[callSid] = [];
     }
@@ -178,12 +172,16 @@ class TwilioService {
         speechTimeout: "auto",
         speechModel: "phone_call",
       });
+
       gather.say("Sorry, I didn't catch that. Please try again.");
+
       res.type("text/xml");
       return res.send(response.toString());
     }
 
-    const aiReply = await this.callAI(speechResult, this.callLogs[callSid]);
+    const history = this.callLogs[callSid].slice(-6);
+
+    const aiReply = await this.callAI(speechResult, history);
 
     this.callLogs[callSid].push({
       timestamp: new Date().toISOString(),
@@ -193,7 +191,6 @@ class TwilioService {
 
     const response = new VoiceResponse();
 
-    //user speech interrupts the AI mid sentence using gather
     const gather = response.gather({
       input: "speech",
       action: "/process_speech",
@@ -201,9 +198,9 @@ class TwilioService {
       speechTimeout: "auto",
       speechModel: "phone_call",
     });
+
     gather.say(aiReply);
 
-    // Fallback if user never speaks after AI finishes
     response.redirect({ method: "POST" }, "/listen");
 
     res.type("text/xml");
@@ -216,12 +213,18 @@ class TwilioService {
         {
           role: "system",
           content:
-            "You are a helpful voice call assistant for a phone service. Keep responses concise and to the point, suitable for a phone conversation. Use the conversation history to maintain context.",
+            "You are a helpful voice call assistant for a phone service. Keep responses concise and conversational. Maintain context from previous messages.",
         },
-        ...history.flatMap((turn) => [
-          { role: "user", content: turn.user },
-          { role: "assistant", content: turn.ai },
-        ]),
+        ...history.flatMap((turn) => {
+          const arr = [];
+          if (turn.user) {
+            arr.push({ role: "user", content: turn.user });
+          }
+          if (turn.ai) {
+            arr.push({ role: "assistant", content: turn.ai });
+          }
+          return arr;
+        }),
         { role: "user", content: speechText },
       ];
 
@@ -240,14 +243,15 @@ class TwilioService {
       }
 
       const aiResponse = await response.json();
+
       if (!aiResponse.reply) {
-        console.error("AI API invalid response:", aiResponse);
-        return "Sorry, I didn't understand the response from the AI.";
+        console.error("Invalid AI response:", aiResponse);
+        return "Sorry, I didn't understand that.";
       }
 
       return aiResponse.reply;
     } catch (error) {
-      console.error("AI API request failed:", error);
+      console.error("AI request failed:", error);
       return "Sorry, I had trouble reaching the AI service.";
     }
   }
