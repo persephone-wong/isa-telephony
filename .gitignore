@@ -1,3 +1,4 @@
 .env
 server/node_modules
 aiServer/node_modules
+twilioServer/node_modules
