@@ -229,17 +229,15 @@ class ClientApp {
         return;
       }
 
-      try {
-        const result = await this.authFetch("/request-call", {
-          method: "POST",
-          body: JSON.stringify({ phone, reason }),
-        });
+      const result = await this.authFetch("/request-call", {
+        method: "POST",
+        body: JSON.stringify({ phone, reason }),
+      });
 
-        window.location.href = `/transcript.html?callSid=${result.callSid}`;
-      } catch (error) {
-        statusMessage.textContent = error.message;
-        statusMessage.className = "message error";
-      }
+      if (!result.callSid)
+        console.error("Unexpected response from client.js:", result);
+
+      window.location.href = `/transcript.html?callSid=${result.callSid}`;
     });
   }
 
