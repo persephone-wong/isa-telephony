@@ -2,7 +2,9 @@ class TranscriptPage {
   constructor() {
     this.container = document.getElementById("transcript");
     this.callSid = this.getCallSid();
-    this.API_BASE = "https://isa-phone-service.onrender.com"; // TwilioService
+    this.API_BASE = "https://isa-phone-service.onrender.com";
+
+    this.renderedCount = 0; // prevents duplicate rendering
   }
 
   getCallSid() {
@@ -16,46 +18,52 @@ class TranscriptPage {
       return;
     }
 
+    const token = localStorage.getItem("token");
+
     const eventSource = new EventSource(
-      `${this.API_BASE}/transcript-stream/${this.callSid}`,
+      `${this.API_BASE}/transcript-stream/${this.callSid}?token=${token}`,
     );
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
+
       if (data.logs) {
-        this.renderLogs(data.logs);
+        this.appendLogs(data.logs);
       }
     };
 
     eventSource.onerror = () => {
-      console.error("Transcript stream error");
+      console.error("SSE connection error");
       eventSource.close();
     };
   }
 
-  renderLogs(logs) {
+  appendLogs(logs) {
     logs.forEach((log) => {
-      const wrapper = document.createElement("div");
-      wrapper.className = "entry";
+      const bubble = document.createElement("div");
+      bubble.className = "message";
 
-      const user = document.createElement("div");
-      user.className = "user";
-      user.textContent = `User: ${log.user}`;
+      if (log.user) {
+        const user = document.createElement("div");
+        user.className = "user";
+        user.textContent = log.user;
+        bubble.appendChild(user);
+      }
 
-      const ai = document.createElement("div");
-      ai.className = "ai";
-      ai.textContent = `AI: ${log.ai}`;
+      if (log.ai) {
+        const ai = document.createElement("div");
+        ai.className = "ai";
+        ai.textContent = log.ai;
+        bubble.appendChild(ai);
+      }
 
-      wrapper.appendChild(user);
-      wrapper.appendChild(ai);
-
-      this.container.appendChild(wrapper);
+      this.container.appendChild(bubble);
     });
 
-    // auto scroll
-    window.scrollTo(0, document.body.scrollHeight);
+    // auto-scroll
+    this.container.scrollTop = this.container.scrollHeight;
   }
 }
 
-const page = new TranscriptPage();
-page.init();
+const app = new TranscriptPage();
+app.init();

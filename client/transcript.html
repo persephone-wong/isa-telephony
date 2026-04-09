@@ -1,29 +1,48 @@
 <!doctype html>
 <html>
   <head>
-    <title>Live Call Transcript</title>
+    <title>Live Transcript</title>
     <style>
       body {
         font-family: Arial;
-        padding: 20px;
+        background: #f5f5f5;
       }
-      .entry {
+
+      #transcript {
+        max-width: 600px;
+        margin: auto;
+        padding: 20px;
+        height: 80vh;
+        overflow-y: auto;
+        background: white;
+        border-radius: 8px;
+      }
+
+      .message {
         margin-bottom: 12px;
       }
+
       .user {
-        font-weight: bold;
+        text-align: right;
+        background: #d1e7ff;
+        padding: 8px;
+        border-radius: 8px;
+        margin-bottom: 4px;
       }
+
       .ai {
-        margin-left: 10px;
-        color: #444;
+        text-align: left;
+        background: #e8e8e8;
+        padding: 8px;
+        border-radius: 8px;
       }
     </style>
   </head>
+
   <body>
-    <h2>Live Transcript</h2>
+    <h2 style="text-align: center">Live Call Transcript</h2>
     <div id="transcript"></div>
 
     <script src="transcript.js"></script>
-    <script src="client.js"></script>
   </body>
 </html>

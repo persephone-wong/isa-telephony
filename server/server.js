@@ -255,6 +255,41 @@ class ServerApp {
       },
     );
 
+    this.app.get(
+      "/transcript-stream/:callSid",
+      this.requireAuth.bind(this),
+      async (req, res) => {
+        const { callSid } = req.params;
+
+        try {
+          const response = await fetch(
+            `https://isa-phone-service.onrender.com/transcript-stream/${callSid}`,
+          );
+
+          if (!response.ok) {
+            return res
+              .status(500)
+              .send("Failed to connect to transcript stream");
+          }
+
+          // Forward headers
+          res.setHeader("Content-Type", "text/event-stream");
+          res.setHeader("Cache-Control", "no-cache");
+          res.setHeader("Connection", "keep-alive");
+
+          // Pipe the stream directly
+          response.body.pipe(res);
+
+          req.on("close", () => {
+            response.body.destroy();
+          });
+        } catch (err) {
+          console.error("Transcript proxy error:", err);
+          res.status(500).send("Streaming error");
+        }
+      },
+    );
+
     // ==================
     // ADMIN ROUTES
     // ==================
