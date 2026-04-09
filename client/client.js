@@ -229,7 +229,7 @@ class ClientApp {
           body: JSON.stringify({ phone, reason }),
         });
 
-        statusMessage.textContent = "Call initiated successfully.";
+        window.location.href = `transcript.html?callSid=${result.callSid}`;
       } catch (err) {
         statusMessage.textContent = err.message;
       }
