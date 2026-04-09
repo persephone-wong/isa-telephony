@@ -237,7 +237,9 @@ class ClientApp {
       if (!result.callSid)
         console.error("Unexpected response from client.js:", result);
 
-      window.location.href = `/transcript.html?callSid=${result.callSid}`;
+      setTimeout(() => {
+        window.location.href = `/transcript.html?callSid=${result.callSid}`;
+      }, 800);
     });
   }
 
