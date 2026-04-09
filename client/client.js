@@ -222,6 +222,12 @@ class ClientApp {
 
       const phone = document.getElementById("phone").value.trim();
       const reason = document.getElementById("reason").value.trim();
+      if (!phone || !reason) {
+        statusMessage.textContent =
+          "Please enter both phone number and reason.";
+        statusMessage.className = "message error";
+        return;
+      }
 
       try {
         const result = await this.authFetch("/request-call", {
@@ -229,9 +235,10 @@ class ClientApp {
           body: JSON.stringify({ phone, reason }),
         });
 
-        window.location.href = `transcript.html?callSid=${result.callSid}`;
-      } catch (err) {
-        statusMessage.textContent = err.message;
+        window.location.href = `/transcript.html?callSid=${result.callSid}`;
+      } catch (error) {
+        statusMessage.textContent = error.message;
+        statusMessage.className = "message error";
       }
     });
   }
