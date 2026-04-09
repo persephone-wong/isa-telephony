@@ -213,7 +213,7 @@ class TwilioService {
         {
           role: "system",
           content:
-            "You are a helpful voice call assistant for a phone service. Keep responses concise and conversational. Maintain context from previous messages.",
+            "You are a helpful voice call assistant for a phone service. Keep responses concise and conversational. Maintain context from previous messages. Do not use lists and bullet points, and respond in a natural, human-like manner",
         },
         ...history.flatMap((turn) => {
           const arr = [];
