@@ -117,7 +117,9 @@ class ClientApp {
           localStorage.setItem("isAdmin", result.isAdmin ? "true" : "false");
 
           // redirect to admin or user dashboard based on role
-          window.location.href = result.isAdmin ? "admin.html" : "dashboard.html";
+          window.location.href = result.isAdmin
+            ? "admin.html"
+            : "dashboard.html";
         } catch (error) {
           this.showMessage(error.message, "error");
         }
@@ -140,7 +142,10 @@ class ClientApp {
           const result = await this.postJson("/register", { email, password });
           this.saveToken(result.token);
           localStorage.setItem("isAdmin", "false");
-          this.showMessage("Registration successful! Redirecting...", "success");
+          this.showMessage(
+            "Registration successful! Redirecting...",
+            "success",
+          );
           setTimeout(() => {
             window.location.href = "dashboard.html";
           }, 800);
@@ -180,11 +185,17 @@ class ClientApp {
           );
 
           document.getElementById("user-email").textContent = user.email;
-          document.getElementById("calls-used").textContent = user.apiCallsConsumed;
-          document.getElementById("calls-limit").textContent = user.apiCallsLimit;
+          document.getElementById("calls-used").textContent =
+            user.apiCallsConsumed;
+          document.getElementById("calls-limit").textContent =
+            user.apiCallsLimit;
           document.getElementById("calls-bar").style.width = `${pct}%`;
           document.getElementById("calls-bar").style.background =
-            pct >= 100 ? "var(--danger)" : pct >= 75 ? "#e07b00" : "var(--accent)";
+            pct >= 100
+              ? "var(--danger)"
+              : pct >= 75
+                ? "#e07b00"
+                : "var(--accent)";
 
           if (user.apiCallsConsumed >= user.apiCallsLimit) {
             const warning = document.getElementById("api-warning");
@@ -198,6 +209,31 @@ class ClientApp {
         }
       })();
     }
+  }
+
+  initCallRequestForm() {
+    const form = document.getElementById("callRequestForm");
+    const statusMessage = document.getElementById("statusMessage");
+
+    if (!form) return;
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const phone = document.getElementById("phone").value.trim();
+      const reason = document.getElementById("reason").value.trim();
+
+      try {
+        const result = await this.authFetch("/request-call", {
+          method: "POST",
+          body: JSON.stringify({ phone, reason }),
+        });
+
+        statusMessage.textContent = "Call initiated successfully.";
+      } catch (err) {
+        statusMessage.textContent = err.message;
+      }
+    });
   }
 
   // ==================
@@ -222,7 +258,8 @@ class ClientApp {
           });
 
           if (!response.ok) {
-            document.getElementById("admin-error").textContent = "Access denied.";
+            document.getElementById("admin-error").textContent =
+              "Access denied.";
             return;
           }
 
@@ -302,6 +339,7 @@ class ClientApp {
   init() {
     this.initAuthForms();
     this.initDashboard();
+    this.initCallRequestForm();
     this.initAdmin();
     this.initLogout();
   }

@@ -201,6 +201,60 @@ class ServerApp {
       }
     });
 
+    // Endpoint to request a call — called by dashboard when user submits the form
+    this.app.post(
+      "/request-call",
+      this.requireAuth.bind(this),
+      async (req, res) => {
+        const { phone, reason } = req.body;
+
+        if (!phone || !reason) {
+          return res
+            .status(400)
+            .json({ error: "phone and reason are required" });
+        }
+
+        const phoneRegex = /^\+?[1-9]\d{7,14}$/;
+        if (!phoneRegex.test(phone)) {
+          return res.status(400).json({ error: "Invalid phone number format" });
+        }
+
+        try {
+          const response = await fetch(
+            "https://isa-phone-service.onrender.com/call", // TwilioService URL
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                phoneNumber: phone,
+                prompt: reason,
+              }),
+            },
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            return res.status(500).json({ error: data.error || "Call failed" });
+          }
+
+          // OPTIONAL: increment API usage here
+          await this.appPool.query(
+            "UPDATE users SET api_calls_consumed = api_calls_consumed + 1 WHERE id = ?",
+            [req.user.userId],
+          );
+
+          res.json({
+            success: true,
+            callSid: data.callSid,
+          });
+        } catch (err) {
+          console.error("Request call error:", err);
+          res.status(500).json({ error: "Failed to request call" });
+        }
+      },
+    );
+
     // ==================
     // ADMIN ROUTES
     // ==================
