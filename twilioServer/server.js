@@ -216,7 +216,7 @@ class TwilioService {
         {
           role: "system",
           content:
-            "You are a helpful voice call assistant for ISA. Keep responses concise and conversational, suitable for being read aloud over the phone. Avoid using bullet points, markdown, or lists.",
+            "You are a helpful voice call assistant for a phone service. Keep responses concise and to the point, suitable for a phone conversation. Use the conversation history to maintain context. Keep replies within 2-3 sentences.",
         },
         ...history.flatMap((turn) => [
           { role: "user", content: turn.user },
